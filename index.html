@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring pH dan Suhu Air</title>
+    <link rel="stylesheet" type="text/css" href="styles.css"> <!-- Link ke file CSS -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+        // Load Google Charts
+        google.charts.load('current', { packages: ['corechart', 'line'] });
+
+        // Function to load data from Google Apps Script
+        function loadData() {
+            document.querySelector('.loading').style.display = 'block'; // Show loading message
+            google.script.run.withSuccessHandler(drawChart).getSensorData(); // Memanggil fungsi getSensorData
+        }
+
+        // Function to draw chart with the fetched data
+        function drawChart(data) {
+            document.querySelector('.loading').style.display = 'none'; // Hide loading message
+
+            // Create a DataTable for Google Charts
+            var chartData = new google.visualization.DataTable();
+            chartData.addColumn('string', 'Waktu'); // Waktu
+            chartData.addColumn('number', 'pH');    // pH
+            chartData.addColumn('number', 'Suhu (°C)'); // Suhu
+
+            // Add the data to the chart
+            data.forEach(function(row) {
+                chartData.addRow([row[0], parseFloat(row[1]), parseFloat(row[2])]); // Ambil kolom yang sesuai
+            });
+
+            // Set chart options
+            var options = {
+                title: 'Grafik pH dan Suhu Air',
+                curveType: 'function',
+                legend: { position: 'bottom' },
+                hAxis: {
+                    title: 'Waktu',
+                    format: 'dd/MM/yyyy HH:mm:ss', // Format waktu
+                },
+                vAxis: {
+                    title: 'Nilai Sensor',
+                    minValue: 0
+                },
+                colors: ['#b0120a', '#ffab00'],
+                backgroundColor: '#f4f4f4',
+            };
+
+            // Draw the chart
+            var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+            chart.draw(chartData, options);
+
+            // Update the data table
+            updateDataTable(data);
+        }
+
+        // Function to update the data table
+        function updateDataTable(data) {
+            var table = document.getElementById("data_table");
+
+            // Clear existing rows except for the header
+            while (table.rows.length > 1) {
+                table.deleteRow(1);
+            }
+
+            // Display only the two most recent entries
+            var latestEntries = data.slice(-2); // Ambil dua entri terakhir
+
+            // Populate the table with the latest data
+            latestEntries.forEach(function(row) {
+                var newRow = table.insertRow();
+                row.forEach(function(cell) {
+                    var newCell = newRow.insertCell();
+                    newCell.textContent = cell;
+                });
+            });
+        }
+
+        // Auto refresh every 10 seconds
+        setInterval(loadData, 10000);
+
+        // Load data on page load
+        window.onload = loadData;
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Monitoring pH dan Suhu Air</h1>
+        <div class="loading">Loading data, please wait...</div>
+        <div id="chart_div" class="chart-container"></div>
+        <button class="refresh-btn" onclick="loadData()">Refresh Data</button>
+        
+        <h2>Data Sensor Terupdate</h2>
+        <table id="data_table">
+            <tr>
+                <th>Waktu</th>
+                <th>pH</th>
+                <th>Suhu (°C)</th>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>
